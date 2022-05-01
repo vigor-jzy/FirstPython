@@ -1,8 +1,9 @@
 from PIL import Image
 import os
-path = "D:\Studio\MyEclipse2015Project\FirstPython\img\\"
-name = 1
-img1 = "{}{}.jpg".format(path, name)
+path = "D:\\Studio\\MyProject\\firstPython\img\\"
+name = "diren"
+extName = ".png"
+img1 = "{}{}{}".format(path, name, extName)
 img11 = "{}{}1.png".format(path, name)
 img11 = "{}{}11.png".format(path, name)
 # 放大比例
@@ -31,9 +32,9 @@ print(scale, wid, hei)
 def smallImg(path, scale):
     print(path)
     img = Image.open(path)
-    newPath = os.path.dirname(path) + "\\new.jpg"
+    newPath = os.path.dirname(path) + "\\{}s.png".format(name)
     print("{}____{}".format(img.size[0], newPath))
     img.resize((int(img.size[0] * scale), int(img.size[1] * scale))).save(newPath)
     pass
 
-smallImg(img1, 0.5)
+smallImg(img1, 0.2)
