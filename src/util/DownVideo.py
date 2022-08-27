@@ -5,6 +5,7 @@ import threading
 import time
 import shutil
 import requests
+from bs4 import BeautifulSoup
 
 headers = {
   'authority': 'xxx.com',
@@ -63,16 +64,27 @@ def getVideoId(url):
     tophtml.close()
     # 正则提取内容
     allurl = re.findall(r"div id=VID style=\"display:none;\">(\d+)</div>", toptext, flags=re.S)
+
+    # 获取页面内容
+    soup = BeautifulSoup(toptext, 'html.parser')
+
+    # 查找对应标签
+    div = soup.find_all('h4', class_="login_register_header")
+
+    # 获取最后一个标签值
+    allTitle = div[0].text.strip()
+
     if len(allurl) > 0:
-        return allurl[0]
+        return [allurl[0], allTitle]
     return ""
 
 # 下载视频
-def downVideo(videoid):
-    if len(videoid) <= 0:
+def downVideo(videoid_name):
+    if len(videoid_name) <= 0:
         print("url为空")
         return;
 
+    videoid = videoid_name[0]
     dirpath = "E:\\Movie\\ts\\" + videoid
     url_prifix = "https://xxx.com/m3u8/" + videoid + "/"
     url = "https://xxx.com/m3u8/" + videoid + "/" + videoid + ".m3u8"
@@ -84,14 +96,19 @@ def downVideo(videoid):
     # 正则提取内容
     ts=re.findall(r"(\d+).ts",res,flags=re.S)
     #print(ts)
-    lastTs = ts[len(ts) - 1]
+    lastTs = videoid_name[1]
     # 从网页上复制下来的请求头
     if os.path.exists("E:\\Movie\\ts\\mp4\\" + lastTs + ".mp4"):
         print(lastTs + ".mp4已存在")
         return
 
     def downTs(i, url, headers):
-        rr = requests.get(url=url, headers=headers)
+        try:
+            rr = requests.get(url=url, headers=headers)
+        except Exception as e:
+            time.sleep(3)
+            downTs(i, url, headers)
+            return;
         r = rr.content
         print(i, url)
         # 二进制写入到本地
@@ -105,9 +122,12 @@ def downVideo(videoid):
     for i in ts:
         # 拼接完整的ts文件下载链接
         u = url_prifix + i + ".ts"
-        t = threading.Thread(target=downTs, args=(i, u, headers, ))
-        #线程准备就绪，随时等候cpu调度
-        t.start()
+        try:
+            t = threading.Thread(target=downTs, args=(i, u, headers, ))
+            #线程准备就绪，随时等候cpu调度
+            t.start()
+        except Exception as msg:
+            print(msg)
         time.sleep(0.3)
 
     while True:
