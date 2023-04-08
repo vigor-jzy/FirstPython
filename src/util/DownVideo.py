@@ -97,18 +97,23 @@ def downVideo(videoid_name):
     ts=re.findall(r"(\d+).ts",res,flags=re.S)
     #print(ts)
     lastTs = videoid_name[1]
+    pattern = re.compile("\s+\\n\s+", re.IGNORECASE)
+    lastTs = pattern.sub("", lastTs)
     # 从网页上复制下来的请求头
-    if os.path.exists("E:\\Movie\\ts\\mp4\\" + lastTs + ".mp4"):
+    if os.path.exists("E:\\ts\\mp4\\" + lastTs + ".mp4"):
         print(lastTs + ".mp4已存在")
         return
 
     def downTs(i, url, headers):
+        file = dirpath + '\\'+i+'.ts'
+        if os.path.exists(file) == True:
+            return
         try:
             rr = requests.get(url=url, headers=headers)
         except Exception as e:
             time.sleep(3)
             downTs(i, url, headers)
-            return;
+            return
         r = rr.content
         print(i, url)
         # 二进制写入到本地
@@ -141,7 +146,7 @@ def downVideo(videoid_name):
         if allDown:
             time.sleep(5)
             # 将.ts文件合成为mp4格式
-            mp4 = open("E:\\Movie\\ts\\mp4\\" + lastTs + ".mp4", 'wb')
+            mp4 = open("E:\\ts\\mp4\\" + lastTs + ".mp4", 'wb')
             for i in ts:
                 ts = open(dirpath + "\\" + i + ".ts", "rb")
                 mp4.write(ts.read())
