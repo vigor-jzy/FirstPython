@@ -142,13 +142,52 @@ def checkValue(ipv6):
     if not record.Value == ipv6:
         log("最新地址：%s，历史地址：%s"%(ipv6, record.Value))
         updateDdns(domain, record, ipv6)
+
+        # 更新cloudflare
+        updateCloudflare(ipv6)
         # re = getRecordDetail(domain, record.RecordId);
         # print(re)
     else:
         log("地址相同，不用更新：%s"%(ipv6))
 
+# 更新cloudflared地址
+def updateCloudflare(ipv6):
+    url = "https://api.cloudflare.com/client/v4/zones/xxxxx/dns_records/xxxxxx"
 
-if __name__ == "__main__":
+    payload = {
+        "content": ipv6,
+        "name": "xxxxxxxx",
+        "proxied": True,
+        "type": "AAAA",
+        #"comment": "",
+        #"tags": ["owner:dns-team"],
+        "ttl": 60
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer xxxxxxxxxxxx"
+    }
+
+    response = requests.request("PUT", url, json=payload, headers=headers)
+    rel = json.loads(response.text);
+    if (rel["success"]):
+        log("xxx更新成功")
+    else:
+        log("xxxx更新失败：%s"%(rel))
+
+    # 查询列表
+    # url = "https://api.cloudflare.com/client/v4/zones/xxxxx/dns_records"
+
+    # headers = {
+    #     "Content-Type": "application/json",
+    #     "Authorization": "Bearer xxxxxx"
+    # }
+
+    # response = requests.request("GET", url, headers=headers)
+
+    # print(response.text)
+
+def startUpdate(count):
     ipv6 = getIpv6()
     if (len(ipv6) > 0):
         newAdd = ipv6[0]
