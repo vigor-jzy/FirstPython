@@ -1,7 +1,9 @@
-import datetime
+import requests
 import json
 import os
 import sys
+import datetime
+import time
 
 from tencentcloud.common import credential
 from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
@@ -22,8 +24,10 @@ def log(info):
         datetime_object = datetime.datetime.now()
         datetime_object = str(datetime_object)
         datetime_object = datetime_object[0:datetime_object.index(".", 18)]
+        logInfo = "{} {}\n".format(datetime_object, info)
+        print(logInfo)
         with open(path, "ab") as f:
-            f.write("{} {}\n".format(datetime_object, info).encode("utf-8"))
+            f.write(logInfo.encode("utf-8"))
 
 
 # 获取公共请求对象
@@ -47,7 +51,7 @@ def getReq():
         reqJson = [models, client];
         return reqJson
     except TencentCloudSDKException as err:
-        print(err)
+        log(err)
 
 # 获取全部信息
 def getAllRecord(name):
@@ -66,7 +70,7 @@ def getAllRecord(name):
         return resp.RecordList;
 
     except TencentCloudSDKException as err:
-        print(err)
+        log(err)
 
 # 根据子域名获取信息
 def getRecordInfo(domain, name):
@@ -98,7 +102,7 @@ def getRecordDetail(name, recordId):
         return resp.RecordInfo
 
     except TencentCloudSDKException as err:
-        print(err)
+        log(err)
 
 # 更新ip地址
 def updateDdns(domain, oldRecord, newIpv6Add):
@@ -123,14 +127,11 @@ def updateDdns(domain, oldRecord, newIpv6Add):
         resp = client.ModifyRecord(req)
         # 输出json格式的字符串回包
         if resp.RequestId:
-            print("更新成功")
             log("更新成功")
         else:
-            print(resp.to_json_string())
             log(resp.to_json_string())
 
     except TencentCloudSDKException as err:
-        print(err)
         log(err)
 
 # 判断地址，进行更新
@@ -140,12 +141,10 @@ def checkValue(ipv6):
     record = getRecordInfo(domain, sub)
     if not record.Value == ipv6:
         log("最新地址：%s，历史地址：%s"%(ipv6, record.Value))
-        print("最新地址：%s，历史地址：%s"%(ipv6, record.Value))
         updateDdns(domain, record, ipv6)
         # re = getRecordDetail(domain, record.RecordId);
         # print(re)
     else:
-        print("地址相同，不用更新：[%s]"%(ipv6))
         log("地址相同，不用更新：%s"%(ipv6))
 
 
@@ -153,8 +152,24 @@ if __name__ == "__main__":
     ipv6 = getIpv6()
     if (len(ipv6) > 0):
         newAdd = ipv6[0]
+        if (len(ipv6) > 1):
+            newAdd = ipv6[1]
+            pass
         checkValue(newAdd)
         pass
     else:
-        print("Ipv6地址为空")
-        log("Ipv6地址为空")
+        count += 1
+        log("Ipv6地址为空，第%d次"%(count))
+        if count < 3:
+            time.sleep(20)
+            startUpdate(count)
+        else:
+            log("更新失败")
+
+
+if __name__ == "__main__":
+    log("开始更新地址")
+    startUpdate(0)
+    while True:
+        log("保持运行")
+        time.sleep(10800);
