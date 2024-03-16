@@ -1,9 +1,11 @@
 # -*- coding: UTF-8 -*-
 import os
 import re
+import shutil
 import threading
 import time
-import shutil
+from urllib.parse import unquote
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -57,11 +59,13 @@ def topPage():
 
 # 视频页视频文件
 def getVideoId(url):
-    print(url)
-    tophtml = s.get(url=url, headers=topheaders, )
+    print("页面url：%s" % url)
+
+    tophtml = s.get(url=url, headers=topheaders)
     tophtml.encoding = "utf-8"
     toptext = tophtml.text
     tophtml.close()
+
     # 正则提取内容
     allurl = re.findall(r"div id=VID style=\"display:none;\">(\d+)</div>", toptext, flags=re.S)
 
@@ -75,11 +79,27 @@ def getVideoId(url):
     allTitle = div[0].text.strip()
 
     if len(allurl) > 0:
-        return [allurl[0], allTitle]
+        # 要解码的字符串
+        encoded_string = allurl[0]
+
+        # 解码字符串
+        decoded_string = unquote(encoded_string)
+        decoded_string = re.findall(r"src='(.*)' type='", decoded_string, flags=re.S)
+
+
+    # 名称
+    allTitle = re.findall(r"title>(.*)\n.*</title>", toptext, flags=re.S)
+
+    if len(allurl) > 0 and len(allTitle) > 0:
+        pattern = re.compile("\s+|\\n|:", re.IGNORECASE)
+        allTitle[0] = pattern.sub("", allTitle[0])
+        # 小名称
+        smallName = re.findall(r"(\d+).mp4", allurl[0], flags=re.S)
+        return [allurl[0], allTitle[0], smallName[0]]
     return ""
 
-# 下载视频
-def downVideo(videoid_name):
+# 下载视频ByTs
+def downVideoByTs(videoid_name):
     if len(videoid_name) <= 0:
         print("url为空")
         return;
@@ -97,8 +117,6 @@ def downVideo(videoid_name):
     ts=re.findall(r"(\d+).ts",res,flags=re.S)
     #print(ts)
     lastTs = videoid_name[1]
-    pattern = re.compile("\s+\\n\s+", re.IGNORECASE)
-    lastTs = pattern.sub("", lastTs)
     # 从网页上复制下来的请求头
     if os.path.exists("E:\\ts\\mp4\\" + lastTs + ".mp4"):
         print(lastTs + ".mp4已存在")
@@ -161,15 +179,59 @@ def downVideo(videoid_name):
             shutil.rmtree(dirpath)
             break
 
-# 获取当前页视频地址
-allUrl = topPage()
-# 遍历所有地址
-for i in allUrl:
-    # 获取视频页视频地址
-    videl_id = getVideoId(i)
-    # 进行下载
-    #downVideo(videlurl)
-    # 多线程下载
-    t = threading.Thread(target=downVideo, args=(videl_id, ))
-    t.start()
-    time.sleep(2)
+# 下载视频ByUrl
+def downVideoByUrl(videoid_name):
+    if len(videoid_name) <= 0:
+        print("url为空")
+        return;
+
+    url = videoid_name[0]
+    name = videoid_name[1]
+    smallName = videoid_name[2]
+    dirpath = "E:\\ts\\mp4"
+    mp4Name = dirpath + "\\" + name + ".mp4"
+    mp4SmallName = dirpath + "\\" + smallName + ".mp4"
+    if os.path.exists(mp4SmallName):
+        os.rename(mp4SmallName, mp4Name)
+        print(mp4Name + "已重名")
+        return
+    if os.path.exists(mp4Name):
+        print(mp4Name + "已存在")
+        return
+
+    print("%s video url：%s" % (mp4Name, url))
+    # try:
+    #     rr = s.get(url=url, headers=topheaders)
+    # except Exception as e:
+    #     time.sleep(3)
+    #     print(e)
+    #     return
+    # r = rr.content
+    # # 二进制写入到本地
+    # with open(mp4Name, mode="wb") as file:
+    #     file.write(r)
+    # rr.close()
+    # print(mp4Name + "下载完成")
+
+
+def downStart():
+    # 获取当前页视频地址
+    allUrl = topPage()
+    # 遍历所有地址
+    for i in allUrl:
+        # 获取视频页视频地址
+        try:
+            videl_id = getVideoId(i)
+        except Exception as msg:
+            print("***********重试**********")
+            videl_id = getVideoId(i)
+        # ts下载
+        #downVideo(videlurl)
+
+        # 多线程下载
+        #t = threading.Thread(target=downVideoByUrl, args=(videl_id,))
+        #t.start()
+        #time.sleep(3)
+        downVideoByUrl(videl_id)
+
+downStart()
