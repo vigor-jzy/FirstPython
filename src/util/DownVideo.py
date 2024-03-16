@@ -67,17 +67,7 @@ def getVideoId(url):
     tophtml.close()
 
     # 正则提取内容
-    allurl = re.findall(r"div id=VID style=\"display:none;\">(\d+)</div>", toptext, flags=re.S)
-
-    # 获取页面内容
-    soup = BeautifulSoup(toptext, 'html.parser')
-
-    # 查找对应标签
-    div = soup.find_all('h4', class_="login_register_header")
-
-    # 获取最后一个标签值
-    allTitle = div[0].text.strip()
-
+    allurl = re.findall(r"xxxxx\(\"(.*)\"\)", toptext, flags=re.S)
     if len(allurl) > 0:
         # 要解码的字符串
         encoded_string = allurl[0]
@@ -86,6 +76,7 @@ def getVideoId(url):
         decoded_string = unquote(encoded_string)
         decoded_string = re.findall(r"src='(.*)' type='", decoded_string, flags=re.S)
 
+        allurl[0] = decoded_string[0].replace("xxx.com//", "xxx/")
 
     # 名称
     allTitle = re.findall(r"title>(.*)\n.*</title>", toptext, flags=re.S)
