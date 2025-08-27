@@ -39,7 +39,7 @@ def daily_report():
     log("******自检******")
 
     # 检查模式
-    check_cfun()
+    check_self()
 
     resp_cfun = send_cmd("AT+CFUN?")
     resp_cereg = send_cmd("AT+CEREG?")
@@ -48,7 +48,7 @@ def daily_report():
 
 
 # 检查模式
-def check_cfun():
+def check_self():
     resp = send_cmd("AT+CFUN?")
     # 解析返回值
     if "+CFUN:" in resp:
@@ -65,6 +65,13 @@ def check_cfun():
     else:
         log("未获取到 CFUN 状态，原始返回:" + resp)
 
+    # 检查PIN
+    resp = send_cmd("AT+CPIN?")
+    log("CPIN：" + resp)
+    if "SIM PIN" in resp:
+        send_cmd('AT+CPIN="xxx"')  # 如果需要PIN，输入
+        time.sleep(3)
+
 
 # 中文转码
 def decode_ucs2(hex_str: str) -> str:
@@ -78,14 +85,10 @@ def decode_ucs2(hex_str: str) -> str:
 
 
 def main():
-    # 首先检查飞行模式
-    check_cfun()
     log(send_cmd("AT"))  # 测试模块
-    resp = send_cmd("AT+CPIN?")
-    log("CPIN：" + resp)
-    if "SIM PIN" in resp:
-        send_cmd('AT+CPIN="xxxxx"')  # 如果需要PIN，输入
-        time.sleep(3)
+
+    # 首先自检
+    check_self()
 
     global current_call_number, in_call
 
