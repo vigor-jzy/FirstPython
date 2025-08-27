@@ -37,13 +37,17 @@ def forward_sms(number, content):
 def daily_report():
     """每天定时上报一次状态"""
     log("******自检******")
+
+    # 检查模式
+    check_cfun()
+
     resp_cfun = send_cmd("AT+CFUN?")
     resp_cereg = send_cmd("AT+CEREG?")
     msg = f"[每日状态报告]\n{resp_cfun.strip()}\n{resp_cereg.strip()}"
     forward_sms("system", msg)
 
 
-# 检查飞行模式
+# 检查模式
 def check_cfun():
     resp = send_cmd("AT+CFUN?")
     # 解析返回值
@@ -53,7 +57,7 @@ def check_cfun():
             if val != 1:
                 log("CFUN 当前不是全功能模式，执行恢复...")
                 send_cmd("AT+CFUN=1")
-                time.sleep(10)
+                time.sleep(15)
             else:
                 log("CFUN 正常 (1)")
         except Exception as e:
