@@ -1,0 +1,98 @@
+import os
+import re
+import smtplib
+import sys
+from datetime import datetime
+from email import encoders
+from email.header import Header
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from pypinyin import pinyin, Style
+
+# 邮箱配置  
+sender_email = 'email'
+sender_password = 'password'  # 注意：对于Gmail，你可能需要设置应用专用密码或使用OAuth2
+
+def iteratorFile(folder_path):
+    # 只匹配英文小括号
+    pattern = r'[（|(]{1}(.*)[)|）]{1}'
+    # 遍历文件夹中的所有文件
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
+        matchs = re.findall(pattern, file_path)
+        # 将用户名称转换为拼音（这里只取第一个读音）
+        if len(matchs) > 0:
+            username = matchs[0]
+            pinyin_list = pinyin(username, style=Style.NORMAL, strict=False)
+            pinyin_str = ''.join([''.join(word) for word in pinyin_list])
+            userInfos = [pinyin_str, "%s\\%s" % (folder_path, filename), username]
+            send(userInfos)
+
+
+# 发送邮件
+def send(userInfos):
+    receiver_email = '%s@xxxx.com' % userInfos[0]
+    userName = userInfos[2]
+
+    if userName == "xxx":
+        receiver_email = "xxxxx@xx.com"
+
+    # 附件文件路径
+    attachment_file_path = userInfos[1]
+
+    # 邮件标题为附件名称
+    subject = attachment_file_path.split("\\")[-1]
+
+    body = '请注意查看！'
+
+    # 创建一个带附件的实例
+    msg = MIMEMultipart()
+
+    # 设置邮件的From和To
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+
+    # 添加邮件正文
+    msg.attach(MIMEText(body, 'plain'))
+
+    # 打开附件文件并添加到邮件
+    with open(attachment_file_path, 'rb') as attachment:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(attachment.read())
+
+    # 编码附件
+    encoders.encode_base64(part)
+
+    # 添加附件头信息
+    file_name = Header(subject, 'utf-8').encode()
+    part.add_header('Content-Disposition', f"attachment; filename*=utf-8''{file_name}")
+
+    # 将附件添加到邮件
+    msg.attach(part)
+
+    # 发送邮件
+    print('*' * 60)
+    print('%s 准备发送给 %s：%s %s' % (datetime.now(), userName, receiver_email, subject))
+    with smtplib.SMTP_SSL('smtp.exmail.qq.com', 465) as server:
+        # SSL
+        server.login(sender_email, sender_password)
+        server.sendmail(sender_email, receiver_email, msg.as_string())
+        server.quit()
+
+        # 非SSL
+        # server.starttls()
+        # server.login(sender_email, sender_password)
+        # server.sendmail(sender_email, receiver_email, msg.as_string())
+
+    print('%s 邮件发送给 %s 成功！' % (datetime.now(), userName))
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print("请输入文件夹路径")
+        exit(0)
+    else:
+        iteratorFile(sys.argv[1])
