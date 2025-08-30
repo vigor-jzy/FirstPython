@@ -12,7 +12,11 @@ current_call_number = None
 in_call = False
 
 # Webhook 配置
-WECHAT_URL = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxxxxxxxxxxxxxxxxx"  # 企业微信机器人
+# 企业微信机器人
+WECHAT_URL = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxxxxxxxxxx"
+
+# bark自定义推送
+BARK_URL = "http://127.0.0.1:8080/xxxxxxxxx"
 
 
 def send_cmd(cmd, delay=0.3):
@@ -24,13 +28,25 @@ def send_cmd(cmd, delay=0.3):
 def forward_sms(number, content):
     # 方式3：企业微信机器人
     try:
-        requests.post(WECHAT_URL, json={
-            "msgtype": "text",
-            "text": {
-                "content": f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n📩 新消息\n来自: {number}\n内容: {content}"}
+        # requests.post(WECHAT_URL, json={
+        #    "msgtype": "text",
+        #    "text": {"content": f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n📩 新消息\n来自: {number}\n内容: {content}"}
+        # }, timeout=5)
+
+        requests.post(BARK_URL, json={
+            "title": f"📩 新消息：{number}",
+            "body": f"{content}",
+            "icon": "https://xxxx"
         }, timeout=5)
     except Exception as e:
-        log("企业微信转发失败:" + e)
+        log("推送转发失败:" + e)
+
+
+# 去掉空行和OK
+def clean_resp(resp: str) -> str:
+    lines = [line.strip() for line in resp.splitlines()]
+    lines = [line for line in lines if line and line != "OK"]
+    return " ".join(lines)  # 紧凑显示
 
 
 # 上报状态
@@ -41,9 +57,9 @@ def daily_report():
     # 检查模式
     check_self()
 
-    resp_cfun = send_cmd("AT+CFUN?")
-    resp_cereg = send_cmd("AT+CEREG?")
-    msg = f"[每日状态报告]\n{resp_cfun.strip()}\n{resp_cereg.strip()}"
+    resp_cfun = clean_resp(send_cmd("AT+CFUN?"))
+    resp_cereg = clean_resp(send_cmd("AT+CEREG?"))
+    msg = f"[状态报告]\n{resp_cfun.strip()}\n{resp_cereg.strip()}"
     forward_sms("system", msg)
 
 
