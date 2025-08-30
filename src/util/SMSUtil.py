@@ -36,6 +36,7 @@ def forward_sms(number, content):
         requests.post(BARK_URL, json={
             "title": f"📩 新消息：{number}",
             "body": f"{content}",
+            "sound": "healthnotification",
             "icon": "https://xxxx"
         }, timeout=5)
     except Exception as e:
